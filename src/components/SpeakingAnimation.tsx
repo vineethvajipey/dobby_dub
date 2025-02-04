@@ -6,18 +6,23 @@ interface SpeakingAnimationProps {
 
 export default function SpeakingAnimation({ isSpeaking }: SpeakingAnimationProps) {
   return (
-    <div className="flex items-center gap-1 h-4">
-      {[...Array(3)].map((_, i) => (
+    <div className="flex items-center gap-0.5 h-5">
+      {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="w-1 bg-blue-500 rounded-full"
-          animate={{
-            height: isSpeaking ? ["40%", "100%", "40%"] : "40%",
+          className="w-1 bg-gray-900"
+          initial={{ height: "4px" }}
+          animate={isSpeaking ? {
+            height: ["4px", "16px", "4px"]
+          } : {
+            height: "4px"
           }}
-          transition={{
+          transition={isSpeaking ? {
             duration: 0.75,
             repeat: Infinity,
             delay: i * 0.15,
+          } : {
+            duration: 0.2
           }}
         />
       ))}

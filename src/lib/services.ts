@@ -51,87 +51,6 @@ export async function ensureUploadsDirectory() {
   }
 }
 
-// Helper function to extract audio from video
-export async function extractAudioFromVideo(videoPath: string): Promise<string> {
-  const audioPath = videoPath.replace(/\.[^/.]+$/, '.mp3');
-  
-  return new Promise((resolve, reject) => {
-    ffmpeg(videoPath)
-      .toFormat('mp3')
-      .on('error', (err) => {
-        console.error('Error during audio extraction:', err);
-        reject(err);
-      })
-      .on('end', () => {
-        console.log('Audio extraction completed');
-        resolve(audioPath);
-      })
-      .save(audioPath);
-  });
-}
-
-export async function transcribeVideo(filePath: string): Promise<TranscriptionResult> {
-  try {
-    console.log('Starting transcription process...', {
-      filePath,
-      exists: existsSync(filePath)
-    });
-    
-    // Ensure the video file exists
-    if (!existsSync(filePath)) {
-      throw new Error(`Video file not found at path: ${filePath}`);
-    }
-    
-    // Extract audio from video
-    console.log('Extracting audio from video...');
-    const audioPath = await extractAudioFromVideo(filePath);
-    console.log('Audio extraction completed:', {
-      audioPath,
-      exists: existsSync(audioPath)
-    });
-
-    // Ensure the audio file was created
-    if (!existsSync(audioPath)) {
-      throw new Error('Failed to extract audio from video');
-    }
-    
-    // Transcribe the audio using Whisper
-    console.log('Calling Whisper API...');
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(audioPath),
-      model: 'whisper-1',
-      response_format: 'verbose_json',
-    });
-    console.log('Whisper API response received');
-
-    // Format the response
-    const result: TranscriptionResult = {
-      text: transcription.text,
-      segments: transcription.segments?.map(segment => ({
-        start: segment.start,
-        end: segment.end,
-        text: segment.text
-      })) || []
-    };
-
-    // Save transcription result
-    const transcriptionPath = filePath.replace(/\.[^/.]+$/, '_transcription.json');
-    await writeFile(transcriptionPath, JSON.stringify(result, null, 2));
-    console.log('Transcription saved to file:', transcriptionPath);
-
-    return result;
-
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Detailed transcription error:', {
-      message: err.message,
-      stack: err.stack,
-      type: err.constructor.name
-    });
-    throw err;
-  }
-}
-
 interface CommentaryResult {
   commentary: string;
   timestamp: number;
@@ -218,11 +137,6 @@ export async function textToSpeech(text: string): Promise<ReadableStream<Uint8Ar
     console.error('Error in text-to-speech conversion:', error);
     throw error;
   }
-}
-
-export async function mergeAudioWithVideo(videoPath: string, audioPath: string) {
-  // Implement audio-video merging
-  throw new Error('Not implemented');
 }
 
 export async function* generateCommentaryStream(input: string): AsyncGenerator<string> {

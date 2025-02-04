@@ -1,18 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
+import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import SpeakingAnimation from './SpeakingAnimation';
+import { useSettings } from '@/lib/settings-context';
 
-export default function SpeechForm() {
-  const [input, setInput] = useState('');
+interface SpeechFormProps {
+  onPlayingChange: (isPlaying: boolean) => void;
+}
+
+export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
+  const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [commentary, setCommentary] = useState<string>('');
+  const [commentary, setCommentary] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const abortController = useRef<AbortController | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
-    // Cleanup audio on unmount
+    onPlayingChange(isSpeaking);
+  }, [isSpeaking, onPlayingChange]);
+
+  useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -21,32 +30,29 @@ export default function SpeechForm() {
     };
   }, []);
 
-  const handlePlay = () => {
-    if (audioRef.current) {
-      audioRef.current.play();
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!text.trim()) {
+      setError('Please enter some text');
+      return;
+    }
+
+    setAudioUrl(null);
+    setError(null);
+    setCommentary('');
+    setIsSpeaking(false);
 
     try {
       setIsLoading(true);
       setError(null);
-      setCommentary('');
-      setIsSpeaking(false);
 
-      // Create new AbortController for this request
-      abortController.current = new AbortController();
-
+      // First, get the streaming commentary
       const response = await fetch('/api/speak', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ input }),
-        signal: abortController.current.signal,
+        body: JSON.stringify({ input: text }),
       });
 
       if (!response.ok) {
@@ -57,124 +63,143 @@ export default function SpeechForm() {
       if (!reader) throw new Error('No reader available');
 
       const decoder = new TextDecoder();
-      let text = '';
+      let commentaryText = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value);
-        text += chunk;
-        setCommentary(text);
+        commentaryText += chunk;
+        setCommentary(commentaryText);
       }
 
-      // After text is generated, get the audio
-      const audioResponse = await fetch('/api/tts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
+      // Then, if audio generation is enabled, generate the audio
+      if (settings.generateAudio) {
+        const audioResponse = await fetch('/api/text-to-speech', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text: commentaryText }),
+        });
 
-      if (!audioResponse.ok) {
-        throw new Error('Failed to generate speech');
+        if (!audioResponse.ok) {
+          const errorData = await audioResponse.json();
+          throw new Error(errorData.error || 'Failed to generate speech');
+        }
+
+        const data = await audioResponse.json();
+        if (!data.audioUrl) {
+          throw new Error('No audio URL received');
+        }
+
+        setAudioUrl(data.audioUrl);
+        
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        
+        audioRef.current = new Audio(data.audioUrl);
+        audioRef.current.addEventListener('play', () => setIsSpeaking(true));
+        audioRef.current.addEventListener('pause', () => setIsSpeaking(false));
+        audioRef.current.addEventListener('ended', () => {
+          setIsSpeaking(false);
+          setAudioUrl(null);
+        });
       }
-
-      const audioBlob = await audioResponse.blob();
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
-      
-      audioRef.current = new Audio(url);
-      audioRef.current.addEventListener('play', () => setIsSpeaking(true));
-      audioRef.current.addEventListener('pause', () => setIsSpeaking(false));
-      audioRef.current.addEventListener('ended', () => setIsSpeaking(false));
 
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('Request cancelled');
-      } else {
-        setError(err instanceof Error ? err.message : 'Something went wrong');
-      }
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
-      abortController.current = null;
     }
   };
 
-  const handleCancel = () => {
-    if (abortController.current) {
-      abortController.current.abort();
-    }
-    if (audioRef.current) {
+  const handlePlayPause = () => {
+    if (!audioRef.current) return;
+
+    if (audioRef.current.paused) {
+      audioRef.current.play();
+      setIsSpeaking(true);
+    } else {
       audioRef.current.pause();
       setIsSpeaking(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-lg font-medium text-gray-700 mb-2">
-            What should Dobby react to?
-          </label>
+        <div className="flex gap-4">
           <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            rows={4}
-            placeholder="Enter any topic, thought, or situation..."
-            disabled={isLoading}
-            required
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Message Dobby..."
+            className="flex-1 p-4 rounded-lg border-2 border-gray-900 dark:border-gray-100 focus:outline-none focus:border-gray-700 dark:focus:border-gray-300 resize-none h-32 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex justify-between items-center">
           <button
             type="submit"
-            disabled={!input.trim() || isLoading}
-            className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className="min-w-[480px] h-10 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isLoading ? 'Generating response...' : 'Let Dobby Cook 👨‍🍳'}
+            {isLoading ? 'Generating...' : 'Let Dobby Cook 👨‍🍳'}
           </button>
-          
-          {(isLoading || isSpeaking) && (
+
+          <div className="flex items-center gap-3">
+            <SpeakingAnimation isSpeaking={isSpeaking} />
             <button
               type="button"
-              onClick={handleCancel}
-              className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              onClick={handlePlayPause}
+              disabled={!audioUrl}
+              className="p-2 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors duration-200"
             >
-              Cancel
+              {isSpeaking ? (
+                <PauseIcon className="w-6 h-6" />
+              ) : (
+                <PlayIcon className="w-6 h-6" />
+              )}
             </button>
-          )}
+          </div>
         </div>
       </form>
 
       {error && (
-        <div className="text-red-500 text-sm">{error}</div>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-500 rounded-lg text-red-700 dark:text-red-400 text-sm">
+          {error}
+        </div>
       )}
 
       {commentary && (
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+        <div className="mt-8 p-4 bg-white dark:bg-gray-800 border border-gray-900 dark:border-gray-100 rounded-lg relative shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Dobby says:</h2>
-            <div className="flex items-center gap-2">
-              {audioUrl && !isSpeaking && (
-                <button
-                  onClick={handlePlay}
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  Play
-                </button>
-              )}
-              <SpeakingAnimation isSpeaking={isSpeaking} />
-            </div>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Dobby says:</h2>
           </div>
-          <div className="prose prose-blue whitespace-pre-wrap">
+          <div className="prose prose-gray dark:prose-invert max-w-none">
             {commentary}
           </div>
         </div>
+      )}
+
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onEnded={() => setIsSpeaking(false)}
+          onPause={() => setIsSpeaking(false)}
+        />
       )}
     </div>
   );

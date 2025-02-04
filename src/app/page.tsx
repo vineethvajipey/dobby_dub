@@ -1,20 +1,32 @@
 'use client';
 
 import SpeechForm from '@/components/SpeechForm';
+import Image from 'next/image';
+import { useState } from 'react';
 
 export default function Home() {
+  const [isPlaying, setIsPlaying] = useState(false);
+
   return (
-    <main className="min-h-screen bg-gray-50 py-12">
+    <main className="min-h-screen bg-background py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="flex justify-center mb-6 relative w-[150px] h-[150px] mx-auto">
+            <Image
+              src={isPlaying ? "/static/devilgif.gif" : "/static/devils5.jpg"}
+              alt="Dobby Animation"
+              fill
+              className="rounded-full object-cover transition-opacity duration-300 border-2 border-gray-900 dark:border-gray-100"
+            />
+          </div>
+          <h1 className="text-4xl font-bold text-foreground mb-4">
             Dobby Dub
           </h1>
-          <p className="text-lg text-gray-600">
-            Enter his domain and hear his illuminating commentary. 
+          <p className="text-lg text-muted-foreground">
+            Enter his domain and hear his illuminating commentary.
           </p>
         </div>
-        <SpeechForm />
+        <SpeechForm onPlayingChange={setIsPlaying} />
       </div>
     </main>
   );
