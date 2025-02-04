@@ -3,6 +3,7 @@ import { Roboto } from "next/font/google";
 import "./globals.css";
 import { SettingsProvider } from '@/lib/settings-context';
 import SettingsPanel from '@/components/SettingsPanel';
+import { Analytics } from '@vercel/analytics/react';
 
 const roboto = Roboto({
   subsets: ['latin'],
@@ -29,6 +30,7 @@ export default function RootLayout({
           </div>
           <SettingsPanel />
         </SettingsProvider>
+        <Analytics />
       </body>
     </html>
   );
