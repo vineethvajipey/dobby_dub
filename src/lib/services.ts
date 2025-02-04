@@ -1,16 +1,5 @@
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { OpenAI } from 'openai';
-import ffmpeg from 'fluent-ffmpeg';
-import axios from 'axios';
-import fs from 'fs';
 import { ElevenLabsClient } from "elevenlabs";
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import axios from 'axios';
 
 // Initialize Eleven Labs client
 const elevenLabs = new ElevenLabsClient({
@@ -18,38 +7,7 @@ const elevenLabs = new ElevenLabsClient({
 });
 
 // Fireworks API configuration
-const FIREWORKS_API_KEY = process.env.FIREWORKS_API_KEY;
 const FIREWORKS_API_URL = 'https://api.fireworks.ai/inference/v1/chat/completions';
-
-export interface VideoData {
-  filePath: string;
-  summary: string;
-  status: string;
-  timestamp: number;
-}
-
-export interface TranscriptionResult {
-  text: string;
-  segments: Array<{
-    start: number;
-    end: number;
-    text: string;
-  }>;
-}
-
-// Helper function to ensure uploads directory exists
-export async function ensureUploadsDirectory() {
-  try {
-    const uploadsDir = join(process.cwd(), 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-    return uploadsDir;
-  } catch (error) {
-    console.error('Error creating uploads directory:', error);
-    throw error;
-  }
-}
 
 interface CommentaryResult {
   commentary: string;
@@ -100,11 +58,6 @@ export async function generateCommentary(input: string): Promise<CommentaryResul
     });
     throw error;
   }
-}
-
-interface TTSResult {
-  filename: string;
-  duration: number;
 }
 
 export async function textToSpeech(text: string): Promise<ReadableStream<Uint8Array>> {
