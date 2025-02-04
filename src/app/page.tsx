@@ -3,11 +3,9 @@
 import SpeechForm from '@/components/SpeechForm';
 import Image from 'next/image';
 import { useState } from 'react';
-import { useSettings } from '@/lib/settings-context';
 
 export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const { settings } = useSettings();
 
   return (
     <main className="min-h-screen bg-background py-12">

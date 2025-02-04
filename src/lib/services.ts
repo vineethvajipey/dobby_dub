@@ -56,7 +56,7 @@ interface CommentaryResult {
   timestamp: number;
 }
 
-export async function generateCommentary(input: string, _: string): Promise<CommentaryResult> {
+export async function generateCommentary(input: string): Promise<CommentaryResult> {
   try {
     console.log('Generating commentary...');
 
@@ -92,11 +92,11 @@ export async function generateCommentary(input: string, _: string): Promise<Comm
 
     console.log('Generated commentary:', commentary);
     return { commentary, timestamp };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating commentary:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
+      message: error instanceof Error ? error.message : 'Unknown error',
+      response: (error as { response?: { data: unknown, status: number } })?.response?.data,
+      status: (error as { response?: { status: number } })?.response?.status
     });
     throw error;
   }

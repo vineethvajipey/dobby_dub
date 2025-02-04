@@ -1,34 +1,33 @@
+import { NextResponse } from 'next/server';
 import { generateCommentaryStream } from '@/lib/services';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { input } = await req.json();
-    const commentaryStream = await generateCommentaryStream(input);
-    
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of commentaryStream) {
-            controller.enqueue(chunk);
+    const { input } = await request.json();
+
+    if (!input) {
+      return new NextResponse('Input text is required', { status: 400 });
+    }
+
+    const stream = generateCommentaryStream(input);
+    const encoder = new TextEncoder();
+
+    return new NextResponse(
+      new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              controller.enqueue(encoder.encode(chunk));
+            }
+            controller.close();
+          } catch (err) {
+            controller.error(err);
           }
-          controller.close();
-        } catch (error) {
-          controller.error(error);
-        }
-      }
-    });
-    
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: 'Failed to generate response' }), 
-      { status: 500 }
+        },
+      })
     );
+  } catch (err) {
+    console.error('Error in /api/speak:', err);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 } 
