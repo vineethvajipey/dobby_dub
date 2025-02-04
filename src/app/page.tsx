@@ -3,9 +3,11 @@
 import SpeechForm from '@/components/SpeechForm';
 import Image from 'next/image';
 import { useState } from 'react';
+import { useSettings } from '@/lib/settings-context';
 
 export default function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const { settings } = useSettings();
 
   return (
     <main className="min-h-screen bg-background py-12">
@@ -13,10 +15,10 @@ export default function Home() {
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6 relative w-[150px] h-[150px] mx-auto">
             <Image
-              src={isPlaying ? "/static/devilgif.gif" : "/static/devils5.jpg"}
+              src={isPlaying ? "/static/devilgif_light.gif" : "/static/devils5_light.png"}
               alt="Dobby Animation"
               fill
-              className="rounded-full object-cover transition-opacity duration-300 border-2 border-gray-900 dark:border-gray-100"
+              className="object-cover transition-opacity duration-300"
             />
           </div>
           <h1 className="text-4xl font-bold text-foreground mb-4">
