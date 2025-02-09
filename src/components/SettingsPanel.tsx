@@ -3,6 +3,8 @@
 import { Cog6ToothIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '@/lib/settings-context';
 import { useState } from 'react';
+import { characters } from '@/lib/characters';
+import Image from 'next/image';
 
 export default function SettingsPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +33,38 @@ export default function SettingsPanel() {
           </div>
 
           <div className="space-y-6">
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-2 block">
+                Select Character
+              </label>
+              <div className="space-y-2">
+                {characters.map((character) => (
+                  <button
+                    key={character.id}
+                    onClick={() => updateSettings({ selectedCharacter: character })}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors duration-200 ${
+                      settings.selectedCharacter.id === character.id
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                    }`}
+                  >
+                    <div className="relative w-10 h-10">
+                      <Image
+                        src={settings.darkMode ? character.imageDark : character.imageLight}
+                        alt={character.name}
+                        fill
+                        className="object-cover rounded-full"
+                      />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{character.name}</div>
+                      <div className="text-xs opacity-80">{character.tagline}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-900 dark:text-white">
                 Dark Mode
@@ -70,7 +104,7 @@ export default function SettingsPanel() {
               </button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              When enabled, Dobby will generate audio for his responses using Eleven Labs API.
+              When enabled, characters will generate audio for their responses using Eleven Labs API.
             </p>
           </div>
         </div>

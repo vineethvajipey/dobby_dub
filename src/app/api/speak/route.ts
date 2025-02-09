@@ -1,15 +1,25 @@
 import { NextResponse } from 'next/server';
 import { generateCommentaryStream } from '@/lib/services';
+import { characters } from '@/lib/characters';
 
 export async function POST(request: Request) {
   try {
-    const { input } = await request.json();
+    const { input, characterId } = await request.json();
 
     if (!input) {
       return new NextResponse('Input text is required', { status: 400 });
     }
 
-    const stream = generateCommentaryStream(input);
+    if (!characterId) {
+      return new NextResponse('Character ID is required', { status: 400 });
+    }
+
+    const character = characters.find(c => c.id === characterId);
+    if (!character) {
+      return new NextResponse('Invalid character ID', { status: 400 });
+    }
+
+    const stream = generateCommentaryStream(input, character);
     const encoder = new TextEncoder();
 
     return new NextResponse(

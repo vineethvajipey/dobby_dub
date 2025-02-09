@@ -1,5 +1,6 @@
 import { ElevenLabsClient } from "elevenlabs";
 import axios from 'axios';
+import { type Character } from './characters';
 
 // Initialize Eleven Labs client
 const elevenLabs = new ElevenLabsClient({
@@ -14,7 +15,7 @@ interface CommentaryResult {
   timestamp: number;
 }
 
-export async function generateCommentary(input: string): Promise<CommentaryResult> {
+export async function generateCommentary(input: string, character: Character): Promise<CommentaryResult> {
   try {
     console.log('Generating commentary...');
 
@@ -25,7 +26,7 @@ export async function generateCommentary(input: string): Promise<CommentaryResul
       messages: [
         {
           role: "user",
-          content: `You are Dobby, a witty and engaging AI commentator. Please react to this in a natural, conversational way: ${input}`
+          content: `${character.prompt} ${input}`
         }
       ]
     };
@@ -60,12 +61,12 @@ export async function generateCommentary(input: string): Promise<CommentaryResul
   }
 }
 
-export async function textToSpeech(text: string): Promise<ReadableStream<Uint8Array>> {
+export async function textToSpeech(text: string, character: Character): Promise<ReadableStream<Uint8Array>> {
   try {
     console.log('Starting text-to-speech conversion...');
 
     const audioStream = await elevenLabs.textToSpeech.convertAsStream(
-      "52d3CDIZuiBA0XXTytxR",
+      character.voiceId,
       {
         text,
         model_id: "eleven_multilingual_v2",
@@ -92,7 +93,7 @@ export async function textToSpeech(text: string): Promise<ReadableStream<Uint8Ar
   }
 }
 
-export async function* generateCommentaryStream(input: string): AsyncGenerator<string> {
+export async function* generateCommentaryStream(input: string, character: Character): AsyncGenerator<string> {
   try {
     console.log('Generating streaming commentary...');
 
@@ -104,7 +105,7 @@ export async function* generateCommentaryStream(input: string): AsyncGenerator<s
       messages: [
         {
           role: "user",
-          content: `You are Dobby, a witty and engaging AI commentator. Please react to this in a natural, conversational way: ${input}`
+          content: `${character.prompt} ${input}`
         }
       ]
     };

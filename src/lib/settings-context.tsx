@@ -1,10 +1,12 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { characters, type Character } from './characters';
 
 interface Settings {
   generateAudio: boolean;
   darkMode: boolean;
+  selectedCharacter: Character;
 }
 
 interface SettingsContextType {
@@ -16,8 +18,9 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>({
-    generateAudio: false,
+    generateAudio: true,
     darkMode: false,
+    selectedCharacter: characters[1],
   });
 
   // Check system preference on mount

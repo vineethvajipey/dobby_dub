@@ -52,7 +52,10 @@ export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ input: text }),
+        body: JSON.stringify({ 
+          input: text,
+          characterId: settings.selectedCharacter.id
+        }),
       });
 
       if (!response.ok) {
@@ -81,7 +84,10 @@ export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ text: commentaryText }),
+          body: JSON.stringify({ 
+            text: commentaryText,
+            characterId: settings.selectedCharacter.id
+          }),
         });
 
         if (!audioResponse.ok) {
@@ -144,7 +150,7 @@ export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Dobby..."
+            placeholder={`Message ${settings.selectedCharacter.name}...`}
             className="flex-1 p-4 rounded-lg border-2 border-gray-900 dark:border-gray-100 focus:outline-none focus:border-gray-700 dark:focus:border-gray-300 resize-none h-32 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
@@ -155,7 +161,7 @@ export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
             disabled={isLoading}
             className="min-w-[480px] h-10 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isLoading ? 'Generating...' : 'Let Dobby Cook 👨‍🍳'}
+            {isLoading ? 'Generating...' : `Let ${settings.selectedCharacter.name} Cook 👨‍🍳`}
           </button>
 
           <div className="flex items-center gap-3">
@@ -185,7 +191,7 @@ export default function SpeechForm({ onPlayingChange }: SpeechFormProps) {
       {commentary && (
         <div className="mt-8 p-4 bg-white dark:bg-gray-800 border border-gray-900 dark:border-gray-100 rounded-lg relative shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Dobby says:</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{settings.selectedCharacter.name} says:</h2>
           </div>
           <div className="prose prose-gray dark:prose-invert max-w-none">
             {commentary}

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { textToSpeech } from '@/lib/services';
+import { characters } from '@/lib/characters';
 
 export async function POST(request: Request) {
   try {
-    const { text } = await request.json();
+    const { text, characterId } = await request.json();
 
     if (!text) {
       return NextResponse.json(
@@ -12,7 +13,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const audioStream = await textToSpeech(text);
+    if (!characterId) {
+      return NextResponse.json(
+        { error: 'Character ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const character = characters.find(c => c.id === characterId);
+    if (!character) {
+      return NextResponse.json(
+        { error: 'Invalid character ID' },
+        { status: 400 }
+      );
+    }
+
+    const audioStream = await textToSpeech(text, character);
     
     // Convert stream to base64
     const chunks = [];
